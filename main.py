@@ -5,6 +5,13 @@ Primary entrypoint script.
 
 import sys
 import os
+
+# Prevent OpenBLAS thread memory allocation error on Windows
+os.environ.setdefault("OPENBLAS_NUM_THREADS", "1")
+os.environ.setdefault("OMP_NUM_THREADS", "1")
+os.environ.setdefault("MKL_NUM_THREADS", "1")
+os.environ.setdefault("NUMEXPR_NUM_THREADS", "1")
+
 import uvicorn
 
 # Ensure repository root is on Python path
