@@ -6,7 +6,7 @@
   <title>CosmoLens HPC — JWST Deep-Field & Gravitational Lens Discovery Engine</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@300;400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
   <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
   <link rel="stylesheet" href="/static/style.css">
@@ -55,59 +55,92 @@
     <!-- Left Sidebar: HPC Telemetry & Object Catalog -->
     <aside class="sidebar-left">
       <!-- HPC Telemetry Card -->
-      <div class="panel telemetry-panel">
+      <section class="panel telemetry-panel">
         <div class="panel-header">
           <div class="panel-title">
             <i data-lucide="activity"></i>
             <span>HPC Telemetry</span>
           </div>
-          <span class="live-dot" title="HPC Engine Ready"></span>
+          <span class="live-pill" title="HPC Engine Ready">
+            <span class="live-dot"></span>Ready
+          </span>
         </div>
 
         <div class="telemetry-grid">
-          <div class="telemetry-card">
+          <div class="tcard" data-accent="cyan">
             <span class="t-label">Throughput</span>
-            <span class="t-val text-cyan" id="tThroughput">-- Mpix/s</span>
+            <span class="t-val">
+              <span class="t-num" id="tThroughput">&ndash;&ndash;</span>
+              <span class="t-unit">Mpix/s</span>
+            </span>
           </div>
-          <div class="telemetry-card">
+          <div class="tcard" data-accent="amber">
             <span class="t-label">Wall Latency</span>
-            <span class="t-val text-amber" id="tLatency">-- ms</span>
+            <span class="t-val">
+              <span class="t-num" id="tLatency">&ndash;&ndash;</span>
+              <span class="t-unit">ms</span>
+            </span>
           </div>
-          <div class="telemetry-card">
+          <div class="tcard" data-accent="green">
             <span class="t-label">Active Cores</span>
-            <span class="t-val text-green" id="tCores">-- CPU</span>
+            <span class="t-val">
+              <span class="t-num" id="tCores">&ndash;&ndash;</span>
+              <span class="t-unit">CPU</span>
+            </span>
           </div>
-          <div class="telemetry-card">
-            <span class="t-label">Extraction Rate</span>
-            <span class="t-val text-gold" id="tExtractionRate">-- obj/s</span>
+          <div class="tcard" data-accent="violet">
+            <span class="t-label">Extraction</span>
+            <span class="t-val">
+              <span class="t-num" id="tExtractionRate">&ndash;&ndash;</span>
+              <span class="t-unit">obj/s</span>
+            </span>
           </div>
         </div>
 
         <div class="memory-bar-wrapper">
           <div class="bar-header">
-            <span>RAM Utilization</span>
-            <span id="tMem">-- MB</span>
+            <span class="bar-label">RAM Utilization</span>
+            <span class="bar-value" id="tMem">&ndash;&ndash; MB</span>
           </div>
           <div class="progress-bg">
             <div class="progress-fill" id="tMemBar" style="width: 25%;"></div>
           </div>
         </div>
-      </div>
+      </section>
 
       <!-- Filter Chips -->
-      <div class="filter-section">
-        <div class="filter-title">Morphology Classification</div>
+      <section class="filter-section">
+        <div class="filter-title">Morphology</div>
         <div class="chips-row">
-          <button class="chip active" data-filter="ALL">All (<span id="countAll">0</span>)</button>
-          <button class="chip chip-gold" data-filter="LENS">Einstein Arcs (<span id="countLens">0</span>)</button>
-          <button class="chip chip-magenta" data-filter="MERGER">Mergers (<span id="countMerger">0</span>)</button>
-          <button class="chip chip-cyan" data-filter="HIGHZ">High-z (<span id="countHighz">0</span>)</button>
-          <button class="chip chip-gray" data-filter="OTHER">Other (<span id="countOther">0</span>)</button>
+          <button class="chip active" data-filter="ALL">
+            <span class="chip-label">All</span>
+            <span class="chip-count" id="countAll">0</span>
+          </button>
+          <button class="chip chip-gold" data-filter="LENS">
+            <span class="chip-dot"></span>
+            <span class="chip-label">Einstein Arcs</span>
+            <span class="chip-count" id="countLens">0</span>
+          </button>
+          <button class="chip chip-magenta" data-filter="MERGER">
+            <span class="chip-dot"></span>
+            <span class="chip-label">Mergers</span>
+            <span class="chip-count" id="countMerger">0</span>
+          </button>
+          <button class="chip chip-cyan" data-filter="HIGHZ">
+            <span class="chip-dot"></span>
+            <span class="chip-label">High-z</span>
+            <span class="chip-count" id="countHighz">0</span>
+          </button>
+          <button class="chip chip-gray" data-filter="OTHER">
+            <span class="chip-dot"></span>
+            <span class="chip-label">Other</span>
+            <span class="chip-count" id="countOther">0</span>
+          </button>
         </div>
-      </div>
+      </section>
 
       <!-- Candidate Catalog List -->
-      <div class="panel catalog-panel">
+      <section class="panel catalog-panel">
         <div class="panel-header">
           <div class="panel-title">
             <i data-lucide="layers"></i>
@@ -119,10 +152,10 @@
           <!-- Dynamically populated -->
           <div class="empty-state">
             <i data-lucide="loader-2" class="spin"></i>
-            <p>Initializing HPC pipeline...</p>
+            <p>Initializing HPC pipeline&hellip;</p>
           </div>
         </div>
-      </div>
+      </section>
     </aside>
 
     <!-- Center: Interactive Deep Field Viewport -->

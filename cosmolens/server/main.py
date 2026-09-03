@@ -5,10 +5,15 @@ FastAPI Server for CosmoLens HPC: Astronomical Processing & AI Discovery Engine.
 import os
 import base64
 from pathlib import Path
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse, FileResponse
 from pydantic import BaseModel
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 from typing import Optional, List, Dict, Any
 
 from cosmolens.hpc.parallel_engine import get_hpc_engine
@@ -17,11 +22,28 @@ from cosmolens.ai.discovery_report import generate_apj_discovery_memo
 from cosmolens.ai.natural_search import search_sky_catalog
 from cosmolens.hpc.mast_fetcher import search_and_fetch_target
 
+# Database imports
+from sqlalchemy.orm import Session
+from cosmolens.server import models, database
+from cosmolens.server.database import get_db
+
 app = FastAPI(
     title="CosmoLens HPC",
     description="High-Performance JWST Deep-Field Processing & Gravitational Lens Discovery Engine",
     version="1.0.0"
 )
+
+# --- Add CORS Middleware for separate Frontend Teams ---
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allows all origins (perfect for hackathons)
+    allow_credentials=True,
+    allow_methods=["*"],  # Allows all methods (GET, POST, etc.)
+    allow_headers=["*"],  # Allows all headers
+)
+
+# Create the SQLite database tables
+models.Base.metadata.create_all(bind=database.engine)
 
 STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
 
@@ -38,6 +60,15 @@ class MastFetchRequest(BaseModel):
 
 class GeminiKeyRequest(BaseModel):
     api_key: str
+
+
+class DiscoveryCreate(BaseModel):
+    target_name: str
+    ra: float
+    dec: float
+    classification: str
+    report_text: str
+    image_url: str = None
 
 
 class NaturalSearchRequest(BaseModel):
@@ -275,13 +306,49 @@ def update_gemini_key(req: GeminiKeyRequest):
     }
 
 
+# --- Database Endpoints ---
+
+@app.post("/api/discoveries", tags=["Database"])
+def save_discovery(discovery: DiscoveryCreate, db: Session = Depends(get_db)):
+    """Saves a new AI discovery to the database."""
+    db_discovery = models.Discovery(**discovery.dict())
+    db.add(db_discovery)
+    db.commit()
+    db.refresh(db_discovery)
+    return {"status": "success", "discovery_id": db_discovery.id}
+
+
+@app.get("/api/discoveries", tags=["Database"])
+def get_discoveries(limit: int = 50, db: Session = Depends(get_db)):
+    """Retrieves all past discoveries from the database."""
+    discoveries = db.query(models.Discovery).order_by(models.Discovery.created_at.desc()).limit(limit).all()
+    return discoveries
+
 # Mount static assets
 if STATIC_DIR.exists():
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 
 @app.get("/")
-def serve_index():
+def serve_landing():
+    """Public front page: the galaxy-to-Milky Way scroll experience."""
+    landing_file = STATIC_DIR / "landing" / "index.html"
+    if landing_file.exists():
+        return FileResponse(landing_file)
+
+    # Older single-file landing page, if the new one has not been copied in.
+    legacy = STATIC_DIR / "landing.html"
+    if legacy.exists():
+        return FileResponse(legacy)
+
+    # Last resort: the server is still usable without any landing assets.
+    return serve_observatory()
+
+
+@app.get("/observatory")
+@app.get("/dashboard")   # kept as an alias: earlier links point here
+def serve_observatory():
+    """The mission dashboard itself."""
     index_file = STATIC_DIR / "index.html"
     if index_file.exists():
         return FileResponse(index_file)

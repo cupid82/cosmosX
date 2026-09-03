@@ -257,7 +257,7 @@ async function loadInitialData() {
 }
 
 function updateStatusHud(status) {
-  document.getElementById('tCores').textContent = `${status.active_hpc_workers} CPU`;
+  document.getElementById('tCores').textContent = status.active_hpc_workers;
   if (status.telemetry && status.telemetry.throughput_mpix_per_sec) {
     updateTelemetryView(status.telemetry);
   }
@@ -272,9 +272,9 @@ function updateStatusHud(status) {
 }
 
 function updateTelemetryView(t) {
-  document.getElementById('tThroughput').textContent = `${t.throughput_mpix_per_sec} Mpix/s`;
-  document.getElementById('tLatency').textContent = `${t.execution_time_ms} ms`;
-  document.getElementById('tExtractionRate').textContent = `${t.detection_rate_objects_per_sec} obj/s`;
+  document.getElementById('tThroughput').textContent = t.throughput_mpix_per_sec;
+  document.getElementById('tLatency').textContent = t.execution_time_ms;
+  document.getElementById('tExtractionRate').textContent = t.detection_rate_objects_per_sec;
   document.getElementById('tMem').textContent = `${t.memory_usage_mb} MB`;
   const pct = Math.min((t.memory_usage_mb / 2048) * 100, 100);
   document.getElementById('tMemBar').style.width = `${pct}%`;
@@ -283,10 +283,10 @@ function updateTelemetryView(t) {
 function updateCounts() {
   let countLens = 0, countMerger = 0, countHighz = 0, countOther = 0;
   for (const s of state.sources) {
-    const m = s.morphology;
-    if (m.is_lens_candidate) countLens++;
-    else if (m.is_merger_candidate) countMerger++;
-    else if (s.f444_f090_ratio > 2.0) countHighz++;
+    const cat = classifySource(s);
+    if (cat === 'lens') countLens++;
+    else if (cat === 'merger') countMerger++;
+    else if (cat === 'highz') countHighz++;
     else countOther++;
   }
   document.getElementById('countAll').textContent = state.sources.length;
@@ -297,59 +297,82 @@ function updateCounts() {
   document.getElementById('catalogCount').textContent = `${state.sources.length} Objects`;
 }
 
+// Single source of truth for the four morphology categories.
+// Counts, tags, the catalog filter and the canvas filter all read from this,
+// so a source that is both a lens and a merger candidate lands in exactly one
+// bucket (lens wins) instead of being counted once and filtered twice.
+const CATEGORY_LABELS = {
+  lens: 'Einstein Arc',
+  merger: 'Tidal Merger',
+  highz: 'High-z Dropout',
+  other: 'Cluster Member',
+};
+
+function classifySource(s) {
+  if (s.morphology.is_lens_candidate) return 'lens';
+  if (s.morphology.is_merger_candidate) return 'merger';
+  if (s.f444_f090_ratio > 2.0) return 'highz';
+  return 'other';
+}
+
+function matchesFilter(s, filter) {
+  if (filter === 'ALL') return true;
+  return classifySource(s) === filter.toLowerCase();
+}
+
 // Catalog List Rendering
 function renderCatalog() {
   const listEl = document.getElementById('catalogList');
   listEl.innerHTML = '';
 
-  const filtered = state.sources.filter(s => {
-    if (state.filter === 'ALL') return true;
-    if (state.filter === 'LENS') return s.morphology.is_lens_candidate;
-    if (state.filter === 'MERGER') return s.morphology.is_merger_candidate;
-    if (state.filter === 'HIGHZ') return s.f444_f090_ratio > 2.0;
-    if (state.filter === 'OTHER') return !s.morphology.is_lens_candidate && !s.morphology.is_merger_candidate && s.f444_f090_ratio <= 2.0;
-    return true;
-  });
+  const filtered = state.sources.filter(s => matchesFilter(s, state.filter));
+
+  // Badge reflects what is actually on screen, not just the full catalog
+  const badge = document.getElementById('catalogCount');
+  if (badge) {
+    badge.textContent = state.filter === 'ALL'
+      ? `${state.sources.length} Objects`
+      : `${filtered.length} / ${state.sources.length}`;
+  }
 
   if (filtered.length === 0) {
     listEl.innerHTML = `<div class="empty-state"><p>No objects in this category.</p></div>`;
     return;
   }
 
+  const frag = document.createDocumentFragment();
+
   filtered.forEach(s => {
-    const item = document.createElement('div');
-    item.className = `catalog-item ${s.id === state.selectedSourceId ? 'selected' : ''}`;
+    const cat = classifySource(s);
+    const tagText = CATEGORY_LABELS[cat];
+
+    const item = document.createElement('button');
+    item.type = 'button';
+    item.className = `catalog-item cat-${cat}${s.id === state.selectedSourceId ? ' selected' : ''}`;
+    item.setAttribute('aria-pressed', s.id === state.selectedSourceId ? 'true' : 'false');
     item.onclick = () => selectSource(s.id);
 
-    let tagClass = 'tag-other';
-    let tagText = 'Cluster Member';
-    if (s.morphology.is_lens_candidate) {
-      tagClass = 'tag-lens';
-      tagText = 'Einstein Arc';
-    } else if (s.morphology.is_merger_candidate) {
-      tagClass = 'tag-merger';
-      tagText = 'Tidal Merger';
-    } else if (s.f444_f090_ratio > 2.0) {
-      tagClass = 'tag-highz';
-      tagText = 'High-z Dropout';
-    }
-
     item.innerHTML = `
-      <div class="catalog-info">
-        <div class="catalog-top">
-          <span class="c-id">${s.id}</span>
-          <span class="c-tag ${tagClass}">${tagText}</span>
-        </div>
-        <div class="catalog-coords">${s.ra_str} &bull; ${s.dec_str}</div>
-        <div class="catalog-stats">
-          <span>SNR: ${s.snr}</span>
-          <span>&epsilon;: ${s.morphology.ellipticity}</span>
-          <span>F444/F090: ${s.f444_f090_ratio}</span>
-        </div>
-      </div>
+      <span class="c-rail" aria-hidden="true"></span>
+      <span class="catalog-top">
+        <span class="c-id">${s.id}</span>
+        <span class="c-tag tag-${cat}">${tagText}</span>
+      </span>
+      <span class="catalog-coords">${s.ra_str}<span class="c-sep"></span>${s.dec_str}</span>
+      <span class="catalog-stats">
+        <span class="c-stat"><span class="c-k">SNR</span><span class="c-v">${s.snr}</span></span>
+        <span class="c-stat"><span class="c-k">&epsilon;</span><span class="c-v">${s.morphology.ellipticity}</span></span>
+        <span class="c-stat"><span class="c-k">F444/F090</span><span class="c-v">${s.f444_f090_ratio}</span></span>
+      </span>
     `;
-    listEl.appendChild(item);
+    frag.appendChild(item);
   });
+
+  listEl.appendChild(frag);
+
+  // Selecting from the canvas rebuilds this list, so bring the row back into view
+  const selectedEl = listEl.querySelector('.catalog-item.selected');
+  if (selectedEl) selectedEl.scrollIntoView({ block: 'nearest' });
 }
 
 // Source Selection & Inspector
@@ -566,9 +589,7 @@ function drawScene() {
       else if (s.snr > 60 && s.total_flux > 2500) strokeColor = '#ef4444'; // Red
 
       // Filter check
-      if (state.filter === 'LENS' && !m.is_lens_candidate) continue;
-      if (state.filter === 'MERGER' && !m.is_merger_candidate) continue;
-      if (state.filter === 'HIGHZ' && s.f444_f090_ratio <= 2.0) continue;
+      if (!matchesFilter(s, state.filter)) continue;
 
       ctx.strokeStyle = strokeColor;
       ctx.lineWidth = (isSelected ? 2.5 : 1.2) / state.scale;
