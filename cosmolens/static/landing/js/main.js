@@ -85,12 +85,61 @@ async function boot() {
   wireScroll(g);
   wireReveals();
   wirePerf(g);
+  wireObservatoryTransition(g);
 
   // Attribute counts reported in the copy should match what actually shipped.
   const countEl = document.querySelector('[data-count="200000"]');
   if (countEl) countEl.dataset.count = String(g.count);
 
   ScrollTrigger.refresh();
+}
+
+/* ─────────────────────────────────────────── observatory warp transition */
+
+function wireObservatoryTransition(g) {
+  const links = document.querySelectorAll('a[href="/observatory"]');
+  const curtain = document.getElementById('transition-curtain');
+  if (!curtain) return;
+
+  links.forEach((a) => {
+    a.addEventListener('click', (e) => {
+      e.preventDefault();
+      const targetUrl = a.getAttribute('href') || '/observatory';
+
+      // Disable scrolling during transition
+      if (lenis) lenis.stop();
+
+      const tl = gsap.timeline({
+        onComplete: () => {
+          window.location.href = targetUrl;
+        },
+      });
+
+      // Cinematic acceleration: plunge camera forward into the stars & warp space
+      if (g && g.camera && g.uniforms) {
+        tl.to(g.camera.position, {
+          z: g.camera.position.z - 18,
+          duration: 0.85,
+          ease: 'power3.in',
+        }, 0);
+
+        if (g.uniforms.uWarp) {
+          tl.to(g.uniforms.uWarp, {
+            value: 2.2,
+            duration: 0.75,
+            ease: 'power2.in',
+          }, 0);
+        }
+      }
+
+      // Smooth curtain fade
+      tl.to(curtain, {
+        opacity: 1,
+        duration: 0.75,
+        ease: 'power2.inOut',
+      }, 0.1);
+    });
+  });
 }
 
 /* ────────────────────────────────────────────────────── scroll → uniforms */

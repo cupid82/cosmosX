@@ -2,33 +2,75 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Observatory</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>CosmoLens — Observatory Console</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600&family=IBM+Plex+Mono:wght@300;400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/style.css">
 </head>
-<body class="fade-in">
-  <div class="chat-container">
-    <div class="chat-header">
-      <h1>CosmoLens Observatory</h1>
-    </div>
-    <div class="chat-box">
-      <div class="messages" id="messages">
-        <div class="message system">Please enter the galaxy name to begin observation.</div>
+<body>
+  <!-- Seamless entry fade curtain -->
+  <div id="pageCurtain" class="curtain"></div>
+
+  <!-- Minimal Nav Bar -->
+  <header class="console-nav">
+    <a href="/" class="nav-brand">
+      <span class="status-dot"></span>
+      <span class="mono">COSMOLENS &nbsp;·&nbsp; OBSERVATORY</span>
+    </a>
+    <a href="/" class="nav-back mono">
+      <span>&larr; Return to Surface</span>
+    </a>
+  </header>
+
+  <!-- Central Minimal Terminal -->
+  <main class="console-container">
+    <div class="console-flow">
+      
+      <!-- Welcome / Status Heading -->
+      <div class="terminal-intro" id="terminalIntro">
+        <p class="intro-tag mono">DEEP FIELD RESOLVER &bull; ONLINE</p>
+        <h1 class="intro-title">What galaxy would you like to observe?</h1>
+        <p class="intro-sub">Enter a catalog designation, NGC identifier, or deep-field coordinates.</p>
       </div>
-      <div class="input-area">
-        <input type="text" id="galaxyInput" placeholder="Enter galaxy name (e.g. NGC 4414)..." autocomplete="off" />
-        <button id="sendBtn" title="Send">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="22" y1="2" x2="11" y2="13"></line>
-            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-          </svg>
-        </button>
+
+      <!-- Feed / Messages Stream -->
+      <div class="terminal-feed" id="chatFeed">
+        <!-- Messages will append here cleanly -->
       </div>
+
+      <!-- Minimal Input Bar -->
+      <div class="input-wrapper">
+        <div class="input-bar">
+          <span class="prompt-symbol mono">&rsaquo;</span>
+          <input 
+            type="text" 
+            id="galaxyInput" 
+            placeholder="Enter galaxy name (e.g. NGC 4414, SMACS 0723)..." 
+            autocomplete="off" 
+            spellcheck="false"
+            autofocus
+          />
+          <button id="sendBtn" class="send-button" aria-label="Send query">
+            <span class="mono key-cue">&crarr;</span>
+          </button>
+        </div>
+
+        <!-- Quick Target Suggestions -->
+        <div class="quick-targets mono" id="quickTargets">
+          <span class="targets-label">QUICK TARGETS:</span>
+          <button class="target-chip" data-target="NGC 4414">NGC 4414</button>
+          <button class="target-chip" data-target="SMACS J0723">SMACS J0723</button>
+          <button class="target-chip" data-target="JWST-CL-0003">JWST-CL-0003</button>
+          <button class="target-chip" data-target="Cartwheel Galaxy">Cartwheel</button>
+          <button class="target-chip" data-target="Stephan's Quintet">Stephan's Quintet</button>
+        </div>
+      </div>
+
     </div>
-  </div>
+  </main>
+
   <script src="/static/app.js"></script>
 </body>
 </html>

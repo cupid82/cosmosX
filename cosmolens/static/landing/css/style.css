@@ -562,3 +562,18 @@ main { position: relative; z-index: 10; }
   .whisper { opacity: 1; }
   * { scroll-behavior: auto !important; }
 }
+
+/* ──────────────────────────────────────────────── transition curtain */
+
+#transition-curtain {
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(circle at 50% 50%, rgba(10, 16, 36, 0.95), #000105 85%);
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  transition: opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
